@@ -156,3 +156,33 @@ df[is.na(df)] <- 0
 
 # SUBSETTING OPERATORS ----------------------------------------------------
 
+# Two other subsetting operators: [[ and $ 
+# [[ is similar to [, except it can only return a single value and it allows you to 
+# pull pieces out of a list
+
+# NEED [[ when working with lists because when [ is applied to a list it always returns a list.
+# it never give the actual contents of the list
+
+# “If list x is a train carrying objects, then x[[5]] is the object in car 5; x[4:6] is a train of cars 4-6.”
+
+# Because it can only return a single value, you must use [[ with either a single
+# positive integer or a string
+
+a <- list(a = 1, b = 2)
+a[[1]]
+a[["a"]]
+
+# If you do supply a vector it indexes recursively
+b <- list(a = list(b = list(c = list(d = 1))))
+b[[c("a", "b", "c", "d")]]
+typeof(b[["a"]])
+
+# Same as
+# subseting the vector b with a with b with c with d
+b[["a"]][["b"]][["c"]][["d"]]
+
+# Data frames are lists of columns, so you can use [[  to extract a column from data frames
+mtcars[[1]]
+mtcars[["cyl"]]
+
+## SIMPLIFYING VS PRESERVING SUBSETTING

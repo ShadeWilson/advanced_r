@@ -278,4 +278,218 @@ summary$r.squared
 
 # SUBSETTING AND ASSIGNMENT -----------------------------------------------
 
+# All subsetting operators can be combined with assignment to modify selected 
+# values of the input vector.
+x <- 1:5
+x[c(1, 2)] <- 2:3
+x
 
+# The length of the LHS needs to match the RHS
+x[-1] <- 4:1
+x
+
+# Note that there's no checking for duplicate indices
+x[c(1, 1)] <- 2:3 # switches 2 in for position 1, and then overwrites to 3 
+x
+
+# You can't combine integer indices with NA
+x[c(1, NA)] <- c(1, 2)
+
+# But you can combine logical indices with NA
+# (where they're treated as false).
+x[c(T, F, NA)] <- 1 # replaces first position with 1 (bc its true), then recycled and replaces
+x                   # position 4 with 1
+
+# This is mostly useful when conditionally modifying vectors
+df <- data.frame(a = c(1, 10, NA))
+df$a[df$a < 5] <- 0
+df$a
+
+# Subsetting with nothing along with assignment can be useful bc it preserves the original object
+# class and structure
+mtcars[] <- lapply(mtcars, as.integer) # mtcars remains a df
+mtcars <- lapply(mtcars, as.integer)   # mtcars now becomes a list
+
+# With lists, you can use subsetting, assignment, and NULL to remove components from a list
+# To add a literal NULL to a list, use [ and list(NULL):
+x <- list(a = 1, b = 2)
+x[["b"]] <- NULL
+str(x) # the b part of list is dropped
+
+y <- list(a = 1)
+y["b"] <- list(NULL)
+str(y) # b is added to list
+
+# APPLICATIONS ------------------------------------------------------------
+
+# LOOKUP TABLES: character subsetting
+
+# character matching provides a powerful way to make look up tables
+x <- c("m", "f", "u", "f", "f", "m", "m")
+lookup <- c(m = "Male", f = "Female", u = NA)
+lookup[x]
+unname(lookup[x]) # converts named vector to just the values! Drops names
+
+# Or with fewer output values
+c(m = "Known", f = "Known", u = "Unknown")[x]
+
+# MATCHING and MERGING by HAND
+grades <- c(1, 2, 2, 3, 1)
+
+info <- data.frame(
+  grade = 3:1,
+  desc = c("Excellent", "Good", "Poor"),
+  fail = c(F, F, T)
+)
+
+# want to duplicate the info table so that we have a row for each value in grades
+# can either use match() and integer subsetting or rownames() and chaacter subsetting
+grades
+
+# Using match
+id <- match(grades, info$grade)
+info[id, ]
+
+# Using rownames
+rownames(info) <- info$grade
+info[as.character(grades), ]
+
+## RANDOM SAMPLES/BOOTSTRAPPING (integer subset)
+
+# You can use integer indices to perform random sampling or bootstrapping of a vector 
+# or data frame. sample() generates a vector of indices, then subsetting to access the values:
+df <- data.frame(x = rep(1:3, each = 2), y = 6:1, z = letters[1:6])
+
+# Set seed for reproducibility
+set.seed(10)
+
+# Randomly reorder
+df[sample(nrow(df)), ]
+
+# Select 3 random rows
+df[sample(nrow(df), 3), ]
+
+# Select 6 bootstrap replicates
+df[sample(nrow(df), 6, rep = T), ] # can duplicate and index
+
+## ORDERING (integer subsetting)
+
+# order() takes a vector as input, returns an int vector
+x <- c("b", "c", "a")
+order(x)
+x[order(x)]
+
+# can specify additional args like decreasing = TRUE and na.last = NA to remove NAs (default they
+# go on end)
+
+# Randomly reorder df
+df2 <- df[sample(nrow(df)), 3:1]
+df2
+
+df2[order(df2$x), ]      # orders the column x
+df2[, order(names(df2))] # orders col names
+
+## EXPANDING AGGREGATED COUNTS (integer subsetting)
+
+# rep() and integer subetting make it easy to uncollapse data by subsetting with a repeated row
+# index
+df <- data.frame(x = c(2, 4, 1), y = c(9, 11, 6), n = c(3, 5, 1))
+rep(1:nrow(df), df$n)
+df[rep(1:nrow(df), df$n), ]
+
+## REMOVING COLS FROM A DF (character subsetting)
+
+# Two ways: 
+# set individual cols to NULL
+df <- data.frame(x = 1:3, y = 3:1, z = letters[1:3])
+df$z <- NULL
+
+# or can subset only the cols you want
+df <- data.frame(x = 1:3, y = 3:1, z = letters[1:3])
+df[c("x", "y")]
+
+# If you know the columns you don’t want, use set operations to work out which colums to keep:
+
+df[setdiff(names(df), "z")]
+
+## SELECTING ROWS BASED ON A CONDITION (logical subsetting)
+rm(mtcars)
+mtcars[mtcars$gear == 5, ]
+mtcars[mtcars$gear == 5 & mtcars$cyl == 4, ]
+
+# Remember to use the vector boolean operators & and |, 
+# not the short-circuiting scalar operators && and ||
+# which are more useful inside if statements
+
+# !(X & Y) is the same as !X | !Y
+# !(X | Y) is the same as !X & !Y
+
+# subset() a specialised shorthand function for subsetting data frames
+subset(mtcars, gear == 5)
+subset(mtcars, gear == 5 & cyl == 4)
+
+## BOOLENA ALGEBRA vs. SETS (logical and integer subsetting)
+
+# using set operations is more effective when:
+# 1) you want to find the first (or last) TRUE
+# 2) you have very few trues and very many falses, a set representation may be faster and require
+# less storages
+
+# which() allows you to convert a boolean representation to an integer representation
+x <- sample(10) < 4
+which(x)
+
+unwhich <- function(x, n) {
+  out <- rep_len(FALSE, n)
+  out[x] <- TRUE
+  out
+}
+
+unwhich(which(x), 10)
+
+(x1 <- 1:10 %% 2 == 0)
+(x2 <- which(x1))
+
+(y1 <- 1:10 %% 5 == 0)
+(y2 <- which(y1))
+
+
+
+# X & Y <-> intersect(x, y)
+x1 & y1
+intersect(x2, y2)
+
+# X | Y <-> union(x, y)
+x1 | y1
+union(x2, y2)
+
+# X & !Y <-> setdiff(x, y)
+x1 & !y1
+setdiff(x2, y2)
+
+# xor(X, Y) <-> setdiff(union(x, y), intersect(x, y))
+xor(x1, y1)
+setdiff(union(x2, y2), intersect(x2, y2)) # only nums that appear in one
+
+# Exercises
+# 1
+df
+df[sample(nrow(df)), sample(nrow(df))]
+
+# 2
+m <- sample(nrow(mtcars), 1)
+mtcars[sample(nrow(mtcars), m), ]
+
+first_row <- sample(nrow(mtcars), 1)
+final_row <- first_row + m
+rows <- first_row:final_row
+
+rows[rows > nrow(mtcars)] <- rows[rows > nrow(mtcars)] - nrow(mtcars)
+
+rows
+  
+mtcars[rows, ]
+
+# 3
+df <- df[3:1]
+df[, order(colnames(df))]

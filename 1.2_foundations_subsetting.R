@@ -186,3 +186,96 @@ mtcars[[1]]
 mtcars[["cyl"]]
 
 ## SIMPLIFYING VS PRESERVING SUBSETTING
+
+# Simplifying: returns the simplest possible data structure and usually gives you what you want
+# Preserving: keeps the structure the same, generally better for programming bc the 
+# result will always be the same type.
+
+# omitting drop = FALSE when subsetting matrices and dfs is a common source of errors
+
+# Vector
+x[[1]] # simplifying
+x[1]   # preserving
+
+# list
+x[[1]] # simplifying
+x[1]   # preserving
+
+# Factor
+x[1:4, drop = T] # simplifying
+x[1:4]           # preserving
+
+# Array
+x[1, ]; x[, 1]                     # simplifying
+x[1, , drop = F]; x[, 1, drop = F] # preserving
+
+# Data frame
+x[, 1]; x[[1]]         # simplifying
+x[, 1, drop = F]; x[1] # preserving
+
+# Preserving is the same for all data types: the output is the same as the input.
+# Simplifying differs for different data types:
+
+# Atomic: removes names
+x <- c(a = 1, b = 2)
+x[1]   # preserve
+x[[1]] # simplify. names are dropped
+
+# List: returns the object inside the list, not a single element list
+y <- list(a = 1, b = 2)
+str(y[1])
+str(y[[1]])
+
+# Factor: drops any unused levels
+z <- factor(c("a", "b"))
+z[1]
+z[1, drop = TRUE]
+
+# Matrix or array: if any of the dimensions has length 1, drops that dimension
+a <- matrix(1:4, nrow = 2)
+a[1, , drop = FALSE]
+a[1, ]
+
+# Data frame: if output is a single column, returns a vector instead of a data frame
+df <- data.frame(a = 1:2, b = 1:2)
+str(df[1])                   # df
+str(df[, "a", drop = FALSE]) # still df
+str(df[, "a"])               # simplified!
+
+## $
+
+# $ is the shorthand operatorwhere x$y == x[["y", exact = FALSE]]
+# common mistake: try to use $ when you have the name of a column stored in a var
+var <- "cyl"
+# Doesn't work - mtcars$var translated to mtcars[["var"]]
+mtcars$var
+
+# Instead use [[
+mtcars[[var]]
+
+# There’s one important difference between $ and [[. $ does partial matching:
+x <- list(abc = 1)
+x$a == x$abc # TRUE!
+x[["a"]]     # NULL
+
+
+## MISSING/OUT OF BOUNDS INDICES 
+
+# [ and [[ differ slightly in their behavior when the index is out of bounds (OOB)
+x <- 1:4
+str(x[5])   # get NA_real_ back
+str(x[[5]]) # error
+str(x[NA_real_])
+str(x[NULL])
+
+# Exercises
+# 1
+mod <- lm(mpg ~ wt, data = mtcars)
+resids <- mod[["residuals"]]
+
+summary <- summary(mod)
+summary$r.squared
+
+# SUBSETTING AND ASSIGNMENT -----------------------------------------------
+
+
